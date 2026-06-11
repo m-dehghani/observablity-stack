@@ -1,0 +1,48 @@
+{
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "graph",
+      "title": "HTTP Request Latency (p50/p95)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ],
+      "datasource": "Tempo"
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Errors (recent)",
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{status!~\"2..\"}[5m])) by (route)",
+          "legendFormat": "errors"
+        }
+      ],
+      "datasource": "Tempo"
+    },
+    {
+      "id": 3,
+      "type": "logs",
+      "title": "Application Logs (Loki)",
+      "targets": [
+        {
+          "expr": "{job=\"varlogs\"} |~ \"ERROR|error|Exception\""
+        }
+      ],
+      "datasource": "Loki"
+    }
+  ],
+  "schemaVersion": 36,
+  "title": "nest_first Full Observability",
+  "uid": "nest_first_full_observability",
+  "version": 1
+}

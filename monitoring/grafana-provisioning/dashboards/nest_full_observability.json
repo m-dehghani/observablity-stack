@@ -1,0 +1,54 @@
+{
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "graph",
+      "title": "Request Duration (p50/p95)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ],
+      "datasource": "Prometheus"
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Errors (recent)",
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{status!~\"2..\"}[5m])) by (route)",
+          "legendFormat": "errors"
+        }
+      ],
+      "datasource": "Prometheus"
+    },
+    {
+      "id": 3,
+      "type": "logs",
+      "title": "Application Logs (Loki)",
+      "targets": [
+        {
+          "expr": "{job=\"varlogs\"} |~ \"ERROR|error|Exception\""
+        }
+      ],
+      "datasource": "Loki"
+    },
+    {
+      "id": 4,
+      "type": "trace",
+      "title": "Trace Search (Tempo)",
+      "datasource": "Tempo"
+    }
+  ],
+  "schemaVersion": 36,
+  "title": "nest_first Full Observability (Prom+Loki+Tempo)",
+  "uid": "nest_first_full_observability_prom",
+  "version": 1
+}

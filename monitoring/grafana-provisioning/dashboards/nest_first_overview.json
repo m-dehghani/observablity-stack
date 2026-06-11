@@ -1,0 +1,25 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Request Duration (example)",
+      "datasource": "Tempo",
+      "targets": []
+    },
+    {
+      "type": "logs",
+      "title": "Errors (Loki)",
+      "datasource": "Loki",
+      "targets": [
+        { "expr": "{job=\"varlogs\"} |~ \"ERROR|error|Exception\"" }
+      ]
+    }
+  ],
+  "schemaVersion": 36,
+  "title": "nest_first Overview",
+  "uid": "nest_first_overview",
+  "version": 1
+}

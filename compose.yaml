@@ -1,0 +1,129 @@
+# Docker Compose for the NX monorepo
+# - `nest_first` is a production service built from the app's Dockerfile
+# - `nest_first_dev` is a development service (profile: dev) that mounts the workspace
+#   and runs `npx nx run @org/nest_first:serve --configuration=development` which enables
+#   continuous build/watch provided by the workspace targets.
+
+version: "3.9"
+
+services:
+  nest_first:
+    build:
+      context: ./apps/nest_first
+      dockerfile: Dockerfile
+    image: org_nest_first:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3000
+      - OTEL_SERVICE_NAME=nest_first
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('net').createConnection(3000, '127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  nest_first_dev:
+    image: node:lts-alpine
+    profiles: ["dev"]
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace:cached
+    ports:
+      - "3000:3000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3000
+      - OTEL_SERVICE_NAME=nest_first_dev
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+    command: sh -c "npm install --prefer-offline --no-audit --progress=false && npx nx run @org/nest_first:serve --configuration=development"
+    stdin_open: true
+    tty: true
+
+  # Observability stack (LGTM)
+  loki:
+    image: grafana/loki:2.8.2
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./monitoring/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:2.8.2
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./monitoring/promtail-config.yaml:/etc/promtail/config.yaml:ro
+    command: -config.file=/etc/promtail/config.yaml
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:1.6.0
+    command: -config.file=/etc/tempo/local-config.yaml
+    volumes:
+      - ./monitoring/tempo-config.yaml:/etc/tempo/local-config.yaml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "3200:3200"
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.76.0
+    volumes:
+      - ./monitoring/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:9.5.0
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./monitoring/grafana-provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
+  prometheus:
+    image: prom/prometheus:2.46.0
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+# Top-level developer watch hints (informational). The `nest_first_dev` service
+# runs the workspace's `serve` target in continuous mode which performs watching.
+x-watch:
+  paths:
+    - apps/nest_first/src
+    - apps/nest_first/webpack.config.js
+    - libs/
+
+volumes:
+  node_modules:
+    driver: local
+  loki_data:
+    driver: local
+  tempo_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# Usage:
+#  - Production: `docker compose up --build nest_first`
+#  - Development (watch): `docker compose up --profile dev nest_first_dev`
+
