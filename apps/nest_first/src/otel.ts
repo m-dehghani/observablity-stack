@@ -11,17 +11,10 @@ const sdk = new NodeSDK({
   instrumentations: [getNodeAutoInstrumentations()],
 });
 
-sdk.start()
-  .then(() => {
-    // SDK started
-  })
-  .catch((err) => {
-    // eslint-disable-next-line no-console
-    console.error('Error starting OpenTelemetry SDK', err);
-  });
+sdk.start();
 
 process.on('SIGTERM', () => {
-  sdk.shutdown().catch((err) => {
+  sdk.shutdown().catch((err: Error) => {
     // eslint-disable-next-line no-console
     console.error('Error shutting down OpenTelemetry SDK', err);
   });

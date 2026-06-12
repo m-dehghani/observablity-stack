@@ -6,17 +6,7 @@ RUN apk add --no-cache git python3 make g++ \
 
 WORKDIR /workspace
 
-# Copy root package files and app package to install workspace deps at build time
-COPY package.json package-lock.json ./
-COPY apps/nest_first/package.json apps/nest_first/package.json
-
-# Install all workspace dependencies into image to avoid runtime install
-RUN npm ci --prefer-offline --no-audit --progress=false
-
-# Preserve a baked copy of node_modules so we can populate a named volume at runtime
-RUN cp -a /workspace/node_modules /image_node_modules || true
-
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-CMD ["sh", "-c", "if [ ! -d /workspace/node_modules ] || [ -z \"$(ls -A /workspace/node_modules)\" ]; then cp -a /image_node_modules /workspace/node_modules || true; fi && npx nx run @org/nest_first:serve --configuration=development"]
+CMD ["sh", "-c", "if [ ! -d /workspace/node_modules ] || [ -z \"$(ls -A /workspace/node_modules)\" ]; then npm ci --prefer-offline --no-audit --progress=false; fi && npx nx run @org/nest_first:serve --configuration=development"]

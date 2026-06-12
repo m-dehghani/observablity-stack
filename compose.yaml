@@ -27,11 +27,14 @@ services:
       start_period: 10s
 
   nest_first_dev:
-    image: node:lts-alpine
-    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: apps/nest_first/Dockerfile.dev
+    image: org_nest_first_dev:latest
     working_dir: /workspace
     volumes:
       - ./:/workspace:cached
+      - node_modules:/workspace/node_modules
     ports:
       - "3000:3000"
     environment:
@@ -40,7 +43,7 @@ services:
       - OTEL_SERVICE_NAME=nest_first_dev
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - OTEL_EXPORTER_OTLP_INSECURE=true
-    command: sh -c "npm install --prefer-offline --no-audit --progress=false && npx nx run @org/nest_first:serve --configuration=development"
+    command: sh -c "if [ ! -d /workspace/node_modules ] || [ -z \"$(ls -A /workspace/node_modules)\" ]; then npm ci --prefer-offline --no-audit --progress=false; fi && npx nx run @org/nest_first:serve --configuration=development"
     stdin_open: true
     tty: true
 
@@ -123,5 +126,5 @@ volumes:
 
 # Usage:
 #  - Production: `docker compose up --build nest_first`
-#  - Development (watch): `docker compose up --profile dev nest_first_dev`
+#  - Development (watch): `docker compose up --build nest_first_dev`
 
