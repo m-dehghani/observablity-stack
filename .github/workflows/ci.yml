@@ -39,3 +39,7 @@ jobs:
       # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci
       - run: npx nx fix-ci
         if: always()
+      - run: nx report-affected --target=lint --base=origin/master --head=HEAD
+        if: always()
+      - run: nx docker:build
+        if: always()

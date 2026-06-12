@@ -11,7 +11,9 @@
           "args": [
             "--node-env=production"
           ],
-          "cwd": "apps/nest_first"
+          "cwd": "apps/nest_first",
+          "outputPath": "apps/nest_first/dist",
+          "outputFileName": "main.js"
         },
         "configurations": {
           "development": {
