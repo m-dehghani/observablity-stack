@@ -4,8 +4,6 @@
 #   and runs `npx nx run @org/nest_first:serve --configuration=development` which enables
 #   continuous build/watch provided by the workspace targets.
 
-version: "3.9"
-
 services:
   nest_first:
     build:
